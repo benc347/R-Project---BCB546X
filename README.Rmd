@@ -28,3 +28,31 @@ plot(pressure)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+Downloaded fang_et_al_genotypes.txt and SNP_position.txt to the project folder and renamed them.
+
+```{r}
+download.file("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018/master/assignments/UNIX_Assignment/fang_et_al_genotypes.txt", destfile = "data/genotypes.txt")
+
+download.file("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018/master/assignments/UNIX_Assignment/snp_position.txt", destfile = "data/SNPs.txt")
+```
+Inspected file structures
+
+```{r}
+genotypes <- read.delim("data/genotypes.txt")
+snps <- read.delim("data/SNPs.txt")
+```
+
+
+
+
+
+
+
+
+
+
+
+
