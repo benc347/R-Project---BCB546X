@@ -33,15 +33,24 @@ as.tibble(file.info("data/SNPs.txt"))[,c(1,2,4:6)]
 Inspect file structure
   Turn both text files into tibbles and call them
   Numbers of rows and columns per each file are written below the tibble
+  Setting col_names equal to FALSE, circumvents the issues with the transpose command
 
 ```{r}
-genotypes <- read_tsv("data/genotypes.txt")
-snps <- read_tsv("data/SNPs.txt")
+genotypes <- read_tsv("data/genotypes.txt", col_names = F)
+snps <- read_tsv("data/SNPs.txt", col_names = F)
 
 genotypes
 snps
 ```
 
+Transpose the imported text files
+  Transpose will not transpose headers. Therefore, the header was incorporated into the 
+  tibble by setting col_names equal to FALSE earlier
+  
+```{r}
+tran_genotypes <- as.tibble(t(genotypes))
+tran_snps <- as.tibble(t(snps))
+```
 
 
 
