@@ -11,14 +11,14 @@ Load tidyverse
 library(tidyverse)
 ```
 
-Downloaded fang_et_al_genotypes.txt and SNP_position.txt to the project folder and renamed them.
+Download fang_et_al_genotypes.txt and SNP_position.txt to the project folder and rename them
 
 ```{r}
 download.file("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018/master/assignments/UNIX_Assignment/fang_et_al_genotypes.txt", destfile = "data/genotypes.txt")
 
 download.file("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018/master/assignments/UNIX_Assignment/snp_position.txt", destfile = "data/SNPs.txt")
 ```
-Inspected file structures
+Inspect file structure
   file.info
     size - size of file in bytes
     isdir - whether or not file is directory
@@ -30,11 +30,16 @@ Inspected file structures
 as.tibble(file.info("data/genotypes.txt"))[,c(1,2,4:6)]
 as.tibble(file.info("data/SNPs.txt"))[,c(1,2,4:6)]
 ```
-
+Inspect file structure
+  Turn both text files into tibbles and call them
+  Numbers of rows and columns per each file are written below the tibble
 
 ```{r}
 genotypes <- read_tsv("data/genotypes.txt")
 snps <- read_tsv("data/SNPs.txt")
+
+genotypes
+snps
 ```
 
 
