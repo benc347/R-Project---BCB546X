@@ -43,15 +43,24 @@ genotypes
 snps
 ```
 
-Transpose the imported text files
+Transpose the imported genotype.txt file
   Transpose will not transpose headers. Therefore, the header was incorporated into the 
-  tibble by setting col_names equal to FALSE earlier
+    tibble by setting col_names equal to FALSE earlier
+  Return first row to columns following transposition
   
 ```{r}
 tran_genotypes <- as.tibble(t(genotypes))
-tran_snps <- as.tibble(t(snps))
+#names(tran_genotypes) <- as.character(unlist(tran_genotypes[1,]))
+#tran_genotypes <- tran_genotypes[-1,]
+tran_genotypes
 ```
 
+Pull maize and teosinte data from tran_genotypes
+
+```{r}
+maize_tgen <- as.tibble(select(tran_genotypes, grep("ZMM", tran_genotypes)))
+teos_tgen <- as.tibble(select(tran_genotypes, grep("ZMP", tran_genotypes)))
+```
 
 
 
