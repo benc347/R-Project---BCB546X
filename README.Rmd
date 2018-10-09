@@ -43,6 +43,12 @@ genotypes
 snps
 ```
 
+Get the three useful snp columns
+
+```{r}
+snps_f <- select(snps, 1,3,4)
+```
+
 Transpose the imported genotype.txt file
   Transpose will not transpose headers. Therefore, the header was incorporated into the 
     tibble by setting col_names equal to FALSE earlier
@@ -56,12 +62,21 @@ tran_genotypes
 ```
 
 Pull maize and teosinte data from tran_genotypes
+  Eliminate unneeded rows at top (JG_OTU and Group)
 
 ```{r}
 maize_tgen <- as.tibble(select(tran_genotypes, grep("ZMM", tran_genotypes)))
 teos_tgen <- as.tibble(select(tran_genotypes, grep("ZMP", tran_genotypes)))
+maize_tgen <- maize_tgen[-c(2,3),]
+teos_tgen <- teos_tgen[-c(2,3),]
 ```
 
+Combine snps_f and each of the tgen files, forming maize and teos respectively
+
+```{r}
+maize <- as.tibble(cbind(snps_f, maize_tgen[,-1]))
+teos <- as.tibble(cbind(snps_f, teos_tgen[,-1])) 
+```
 
 
 
