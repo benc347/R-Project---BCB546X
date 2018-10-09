@@ -5,31 +5,11 @@ date: "October 2, 2018"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+Load tidyverse
+
+```{r}
+library(tidyverse)
 ```
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-
 
 Downloaded fang_et_al_genotypes.txt and SNP_position.txt to the project folder and renamed them.
 
@@ -39,10 +19,22 @@ download.file("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018/m
 download.file("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018/master/assignments/UNIX_Assignment/snp_position.txt", destfile = "data/SNPs.txt")
 ```
 Inspected file structures
+  file.info
+    size - size of file in bytes
+    isdir - whether or not file is directory
+    mtime - last time file modified
+    ctime - "last status change"
+    atime - last accession time
+    
+```{r}
+as.tibble(file.info("data/genotypes.txt"))[,c(1,2,4:6)]
+as.tibble(file.info("data/SNPs.txt"))[,c(1,2,4:6)]
+```
+
 
 ```{r}
-genotypes <- read.delim("data/genotypes.txt")
-snps <- read.delim("data/SNPs.txt")
+genotypes <- read_tsv("data/genotypes.txt")
+snps <- read_tsv("data/SNPs.txt")
 ```
 
 
