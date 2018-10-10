@@ -37,7 +37,7 @@ Inspect file structure
 
 ```{r}
 genotypes <- read_tsv("data/genotypes.txt", col_names = F)
-snps <- read_tsv("data/SNPs.txt", col_names = F)
+snps <- read_tsv("data/SNPs.txt")
 
 genotypes
 snps
@@ -63,21 +63,39 @@ tran_genotypes
 
 Pull maize and teosinte data from tran_genotypes
   Eliminate unneeded rows at top (JG_OTU and Group)
+  Return top row to header
 
 ```{r}
 maize_tgen <- as.tibble(select(tran_genotypes, grep("ZMM", tran_genotypes)))
 teos_tgen <- as.tibble(select(tran_genotypes, grep("ZMP", tran_genotypes)))
 maize_tgen <- maize_tgen[-c(2,3),]
 teos_tgen <- teos_tgen[-c(2,3),]
+names(maize_tgen) <- as.character(unlist(maize_tgen[1,]))
+maize_tgen <- maize_tgen[-1,]
+names(teos_tgen) <- as.character(unlist(teos_tgen[1,]))
+teos_tgen <- teos_tgen[-1,]
+
 ```
 
 Combine snps_f and each of the tgen files, forming maize and teos respectively
+Arrange by column X3 (the chromosome column)
 
 ```{r}
-maize <- as.tibble(cbind(snps_f, maize_tgen[,-1]))
-teos <- as.tibble(cbind(snps_f, teos_tgen[,-1])) 
+maize <- arrange(as.tibble(cbind(snps_f, maize_tgen[,-1])), as.numeric(Chromosome), as.numeric(Position))
+teos <- arrange(as.tibble(cbind(snps_f, teos_tgen[,-1])), as.numeric(Chromosome), as.numeric(Position))
 ```
 
+Separated files
+
+```{r}
+for (i in 1:nrow(test)) {
+    if(i == 1 || test[i,1] != test[i-1,1]) {
+        write_tsv(test[i,], paste("sorted_data/", test[i,1],"_testfile.txt", sep = ""))
+    } else {
+        write_tsv(test[i,], paste("sorted_data/", test[i,1],"_testfile.txt", sep = ""), append = T)
+    }
+}
+```
 
 
 
