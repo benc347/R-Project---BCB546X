@@ -78,25 +78,54 @@ teos_tgen <- teos_tgen[-1,]
 ```
 
 Combine snps_f and each of the tgen files, forming maize and teos respectively
-Arrange by column X3 (the chromosome column)
+Arrange by Chromosome, both in ascending and descending order
 
 ```{r}
-maize <- arrange(as.tibble(cbind(snps_f, maize_tgen[,-1])), as.numeric(Chromosome), as.numeric(Position))
-teos <- arrange(as.tibble(cbind(snps_f, teos_tgen[,-1])), as.numeric(Chromosome), as.numeric(Position))
+maize_asc <- arrange(as.tibble(cbind(snps_f, maize_tgen[,-1])), as.numeric(Chromosome), as.numeric(Position))
+teos_asc <- arrange(as.tibble(cbind(snps_f, teos_tgen[,-1])), as.numeric(Chromosome), as.numeric(Position))
+maize_des <- arrange(as.tibble(cbind(snps_f, maize_tgen[,-1])), as.numeric(Chromosome), desc(as.numeric(Position)))
+teos_des <- arrange(as.tibble(cbind(snps_f, teos_tgen[,-1])), as.numeric(Chromosome), desc(as.numeric(Position)))
+```
+
+For the descending files, replace "?" in "?/?" with "-" in "-/-". For whatever reason, the it only works if it is done with lapply. teos_des <- as.tibble(gsub("\\?", "-", teos_des)) runs, but the entire tibble gets completely messed up with replacements. Not sure why.
+
+```{r}
+maize_des <- as.tibble(lapply(maize_des, function(x) {
+  gsub("\\?", "-", x) 
+}))
+teos_des <- as.tibble(lapply(teos_des, function(x) {
+  gsub("\\?", "-", x) 
+}))
+
 ```
 
 Separated files
+  Create function to split rows of dataframe into smaller files. Files with identical values in a user-defined, ordered column will be added to same file (ie, all files with same value in a column will be placed into a file). Output to files with filenames bearing the pattern "'third input' 'value of column at given iteration' 'fourth input'". Input: dataframe, number of column, anything to be written in the output filename before the column value (including the file path), anything to be written in the output filename after the column value (including the file type).
+  Split
 
 ```{r}
-for (i in 1:nrow(test)) {
-    if(i == 1 || test[i,1] != test[i-1,1]) {
-        write_tsv(test[i,], paste("sorted_data/", test[i,1],"_testfile.txt", sep = ""))
+split_by_ordered_column <- function(fname, cnum, prefix, suffix) {
+
+#dataframe to split = fname
+#column to split by = cnum
+#first part of filename = prefix
+#second part of filename = suffix
+
+for (i in 1:nrow(fname)) {
+    if(i == 1 || fname[i,cnum] != fname[i-1,cnum]) {
+        write_tsv(fname[i,], paste(prefix, fname[i,cnum], suffix, sep = ""))
     } else {
-        write_tsv(test[i,], paste("sorted_data/", test[i,1],"_testfile.txt", sep = ""), append = T)
+        write_tsv(fname[i,], paste(prefix, fname[i,cnum], suffix, sep = ""), append = T)
     }
 }
-```
+  
+}
 
+split_by_ordered_column(maize_asc, 2, "sorted_data/chromosome_", "_maize_asc.txt")
+split_by_ordered_column(teos_asc, 2, "sorted_data/chromosome_", "_teos_asc.txt")
+split_by_ordered_column(maize_des, 2, "sorted_data/chromosome_", "_maize_des.txt")
+split_by_ordered_column(teos_des, 2, "sorted_data/chromosome_", "_teos_des.txt")
+```
 
 
 
