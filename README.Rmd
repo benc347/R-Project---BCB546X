@@ -18,29 +18,36 @@ download.file("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018/m
 
 download.file("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018/master/assignments/UNIX_Assignment/snp_position.txt", destfile = "data/SNPs.txt")
 ```
+
 Inspect file structure
-  file.info
-    size - size of file in bytes
-    isdir - whether or not file is directory
-    mtime - last time file modified
-    ctime - "last status change"
-    atime - last accession time
-    
+  Create function called inspect_file which adds the following to inspection tibble and prints
+    file.info (only state the 1st, 2nd, and 4th - 6th outputs which are the following)
+      size - size of file in bytes
+      isdir - whether or not file is directory
+      mtime - last time file modified
+      ctime - "last status change"
+      atime - last accession time
+    To count rows and columns
+      import text file as tibble with its headers as its first row
+      use nrow and ncolumn, and add the results to the inspection tibble created above
+  
 ```{r}
-as.tibble(file.info("data/genotypes.txt"))[,c(1,2,4:6)]
-as.tibble(file.info("data/SNPs.txt"))[,c(1,2,4:6)]
+inspect_file <- function(file_path) {
+  inspection <- as.tibble(file.info(file_path))[,c(1,2,4:6)]
+  tib <- read_tsv(file_path, col_names = F)
+  add_column(inspection, rows = nrow(tib), columns = ncol(tib))
+}
+
+inspect_file("data/genotypes.txt")
+inspect_file("data/snps.txt")
 ```
-Inspect file structure
-  Turn both text files into tibbles and call them
-  Numbers of rows and columns per each file are written below the tibble
-  Setting col_names equal to FALSE, circumvents the issues with the transpose command
+  
+Turn both text files into tibbles and call them
+  Setting col_names equal to FALSE, circumvents the issues with the transpose command (remember though, genotypes now has an additional row since its header was made into its first row)
 
 ```{r}
 genotypes <- read_tsv("data/genotypes.txt", col_names = F)
 snps <- read_tsv("data/SNPs.txt")
-
-genotypes
-snps
 ```
 
 Get the three useful snp columns
@@ -78,7 +85,7 @@ teos_tgen <- teos_tgen[-1,]
 ```
 
 Combine snps_f and each of the tgen files, forming maize and teos respectively
-Arrange by Chromosome, both in ascending and descending order
+Arrange by Chromosome, both in ascending and descending order. NAs are not written into Chromosome column, they're just an artifact of arrangement I think.
 
 ```{r}
 maize_asc <- arrange(as.tibble(cbind(snps_f, maize_tgen[,-1])), as.numeric(Chromosome), as.numeric(Position))
@@ -101,7 +108,6 @@ teos_des <- as.tibble(lapply(teos_des, function(x) {
 
 Separated files
   Create function to split rows of dataframe into smaller files. Files with identical values in a user-defined, ordered column will be added to same file (ie, all files with same value in a column will be placed into a file). Output to files with filenames bearing the pattern "'third input' 'value of column at given iteration' 'fourth input'". Input: dataframe, number of column, anything to be written in the output filename before the column value (including the file path), anything to be written in the output filename after the column value (including the file type).
-  Split
 
 ```{r}
 split_by_ordered_column <- function(fname, cnum, prefix, suffix) {
@@ -125,6 +131,9 @@ split_by_ordered_column(maize_asc, 2, "sorted_data/chromosome_", "_maize_asc.txt
 split_by_ordered_column(teos_asc, 2, "sorted_data/chromosome_", "_teos_asc.txt")
 split_by_ordered_column(maize_des, 2, "sorted_data/chromosome_", "_maize_des.txt")
 split_by_ordered_column(teos_des, 2, "sorted_data/chromosome_", "_teos_des.txt")
+
+unlink("sorted_data/*multiple*")
+unlink("sorted_data/*unknown*")
 ```
 
 
