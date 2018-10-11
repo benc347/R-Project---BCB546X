@@ -20,14 +20,14 @@ download.file("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018/m
 ```
 
 Inspect file structure
-  Create function called inspect_file which adds the following to inspection tibble and prints
+  Create function called inspect_file which adds the following to inspection tibble and prints:
     file.info (only state the 1st, 2nd, and 4th - 6th outputs which are the following)
       size - size of file in bytes
       isdir - whether or not file is directory
       mtime - last time file modified
       ctime - "last status change"
       atime - last accession time
-    To count rows and columns
+    Number of rows and columns
       import text file as tibble with its headers as its first row
       use nrow and ncolumn, and add the results to the inspection tibble created above
   
@@ -85,7 +85,7 @@ teos_tgen <- teos_tgen[-1,]
 ```
 
 Combine snps_f and each of the tgen files, forming maize and teos respectively
-Arrange by Chromosome, both in ascending and descending order. NAs are not written into Chromosome column, they're just an artifact of arrangement I think.
+Arrange by Chromosome, both in ascending and descending order. NAs are not written into Chromosome column, they're just an artefact of arrangement I think.
 
 ```{r}
 maize_asc <- arrange(as.tibble(cbind(snps_f, maize_tgen[,-1])), as.numeric(Chromosome), as.numeric(Position))
@@ -136,8 +136,65 @@ unlink("sorted_data/*multiple*")
 unlink("sorted_data/*unknown*")
 ```
 
+first graph - 
+need list of snps with lavrovs definition
+
+Create new genotypes tibble that has headers and arrange it by group.
+  Replace "?/?" wit "NA"
+
+```{r}
+headed_genotypes <- read_tsv("data/genotypes.txt")
+headed_genotypes <- as.tibble(lapply(headed_genotypes, function(x) {
+  gsub("\\?\\/\\?", "NA", x) 
+}))
+grouped_genotypes <- arrange(headed_genotypes, Group)
+```
+Create new tibbles, one for each value in the Group column
+
+```{r}
+for (i in 1:length(unique(grouped_genotypes$Group))) {
+  df <- paste("group_", i, sep = "")
+  assign(df, filter(grouped_genotypes, Group == unique(grouped_genotypes$Group)[i]))
+}
+```
+
+Create a tibble with two columns, Groups and SNPs
+For loop
+  first for
+
+```{r}
+grp_snps <- tibble(Groups=character(), SNPs=character())
+for (i in 1:length(unique(grouped_genotypes$Group))) {
+  grpdf = get(paste("group_", i, sep = ""))
+  #frame = get(paste("frame_", i, sep = ""))
+  for (j in 4:ncol(grpdf)) {
+    uni <- unique(grpdf[,j])
+    #print(uniq)
+    if (nrow(uni) > 2 || (nrow(uni) == 2 && ("NA" %in% uni) == F)) {
+      grp_snps <- add_row(grp_snps, Groups=unique(grouped_genotypes$Group)[i], SNPs=names(uni))
+    }
+  }
+}
+```
+
+Joining
+
+```{r}
+graph_1 <- left_join(snps_f, grp_snps, by = c("SNP_ID" = "SNPs"))
+graph_1 <- filter(graph_1, Chromosome %in% c(1:10))
+ggplot(data = graph_1) + geom_bar(mapping = aes(x = Chromosome, fill = Groups))
+```
 
 
+
+second graph - 
+
+```{r}
+
+gathered_genotypes <- gather(headed_genotypes[,-1], SNP_info, values, -JG_OTU, -Group)
+gathered_genotypes <- mutate(gathered_genotypes, hetero_homo = ifelse(values == "NA", "NA", ifelse(values == "A\\/A" || values == "T\\/T" || values == "C\\/C" || values == "G\\/G", "Homo", "Hetero")))
+tail(gathered_genotypes)
+```
 
 
 
