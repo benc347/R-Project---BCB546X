@@ -185,17 +185,31 @@ graph_1 <- filter(graph_1, Chromosome %in% c(1:10))
 ggplot(data = graph_1) + geom_bar(mapping = aes(x = Chromosome, fill = Groups))
 ```
 
-
-
 second graph - 
 
-```{r}
+Replace "NA" with R's actual missing data term, NA
+Mutate and add a new column, Phenotype. Nested ifelse statements assign either Homo or Hetero depending on SNP. Arrange by either group or species.
 
-gathered_genotypes <- gather(headed_genotypes[,-1], SNP_info, values, -JG_OTU, -Group)
-gathered_genotypes <- mutate(gathered_genotypes, hetero_homo = ifelse(values == "NA", "NA", ifelse(values == "A\\/A" || values == "T\\/T" || values == "C\\/C" || values == "G\\/G", "Homo", "Hetero")))
-tail(gathered_genotypes)
+```{r}
+gathered_genotypes <- gather(headed_genotypes[,-1], SNP_info, values, -JG_OTU, -Group) %>%
+  mutate(homo_hetero = ifelse(values == "NA", NA, ifelse(values == fixed("A/A"), "Homo", ifelse(values == fixed("T/T"), "Homo", ifelse(values == fixed("C/C"), "Homo", ifelse(values == fixed("G/G"), "Homo", "Hetero"))))))
+
+graph_2_group <- arrange(gathered_genotypes, Group)
+graph_2_species <- arrange(gathered_genotypes, JG_OTU)
 ```
 
+graphs
 
+```{r}
+ggplot(data = graph_2_group) + geom_bar(mapping = aes(x = Group, fill = homo_hetero), position = "fill")
+
+ggplot(data = graph_2_species) + geom_bar(mapping = aes(x = JG_OTU, fill = homo_hetero), position = "fill")
+```
+
+```{r}
+p <- ggplot(data = maize_asc, mapping = aes(x=SNP_ID, y=as.numeric(Position))) + geom_point(size=1, color="grey")
+p <- p + facet_wrap(~ Chromosome)
+print(p)
+```
 
 
