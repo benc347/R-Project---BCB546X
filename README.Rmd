@@ -21,16 +21,22 @@ download.file("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018/m
 Part 1 - Data Inspection
 
 Inspect file structure
+
   Create function called inspect_file which adds the following to inspection tibble and prints:
-    file.info (only state the 1st, 2nd, and 4th - 6th outputs which are the following)
-      size - size of file in bytes
-      isdir - whether or not file is directory
-      mtime - last time file modified
-      ctime - "last status change"
-      atime - last accession time
-    Number of rows and columns
-      import text file as tibble with its headers as its first row
-      use nrow and ncolumn, and add the results to the inspection tibble created above
+  
+  file.info (only state the 1st, 2nd, and 4th - 6th outputs which are the following)
+  
+  size - size of file in bytes
+
+  isdir - whether or not file is directory
+  
+  mtime - last time file modified
+  
+  ctime - "last status change"
+  
+  atime - last accession time
+  
+  Number of rows and columns: Import text file as tibble with its headers as its first row. Use nrow and ncolumn, and add the results to the inspection tibble created above
   
 ```{r}
 inspect_file <- function(file_path) {                             #create function
@@ -46,8 +52,7 @@ inspect_file("data/snps.txt")
 
 Part 1 - Data Processing
 
-Turn both text files into tibbles and call them
-  Setting col_names equal to FALSE, circumvents the issues with the transpose command as t(X) will not transpose the headers of X
+Turn both text files into tibbles and call them. Setting col_names equal to FALSE, circumvents the issues with the transpose command as t(X) will not transpose the headers of X
 
 ```{r}
 genotypes <- read_tsv("data/genotypes.txt", col_names = F)
@@ -60,18 +65,17 @@ Get the three useful snp columns
 snps_f <- select(snps, 1,3,4)
 ```
 
-Transpose the imported genotype.txt file
-  Transpose will not transpose headers. Therefore, the header was incorporated into the 
-    tibble by setting col_names equal to FALSE earlier
-  Return first row to columns following transposition
+Transpose the imported genotype.txt file. Transpose will not transpose headers. Therefore, the header was incorporated into the tibble by setting col_names equal to FALSE earlier. Return first row to columns following transposition
   
 ```{r}
 tran_genotypes <- as.tibble(t(genotypes))
 ```
 
 Pull maize and teosinte data from tran_genotypes
-  Eliminate unneeded rows at top (JG_OTU and Group)
-  Return top row to header
+
+Eliminate unneeded rows at top (JG_OTU and Group)
+
+Return top row to header
 
 ```{r}
 maize_tgen <- as.tibble(select(tran_genotypes, grep("ZMM", tran_genotypes))) #pull maize
@@ -86,7 +90,10 @@ teos_tgen <- teos_tgen[-1,]
 ```
 
 Combine snps_f and each of the tgen files, forming maize and teos respectively
-Arrange by Chromosome, both in ascending and descending order. NAs are not written into Chromosome column, they're just an artefact of arrangement I think. Columns are bound first (as.tibble(cbind(snps_f, transposed_file)), then arranged numerically according to Chromosome, then by Position.
+
+Arrange by Chromosome, both in ascending and descending order. NAs are not written into Chromosome column, they're just an artefact of arrangement I think. 
+
+Columns are bound first (as.tibble(cbind(snps_f, transposed_file)), then arranged numerically according to Chromosome, then by Position.
 
 ```{r}
 maize_asc <- arrange(as.tibble(cbind(snps_f, maize_tgen[,-1])), as.numeric(Chromosome), as.numeric(Position)) 
@@ -108,7 +115,8 @@ teos_des <- as.tibble(lapply(teos_des, function(x) {      #second argument
 ```
 
 Separated files
-  Create function to split rows of dataframe into smaller files. Files with identical values in a user-defined, ordered column will be added to same file (ie, all files with same value in a column will be placed into a file). Output to files with filenames bearing the pattern "'third input' 'value of column at given iteration' 'fourth input'". Input: dataframe, number of column, anything to be written in the output filename before the column value (including the file path), anything to be written in the output filename after the column value (including the file type).
+
+Create function to split rows of dataframe into smaller files. Files with identical values in a user-defined, ordered column will be added to same file (ie, all files with same value in a column will be placed into a file). Output to files with filenames bearing the pattern "'third input' 'value of column at given iteration' 'fourth input'". Input: dataframe, number of column, anything to be written in the output filename before the column value (including the file path), anything to be written in the output filename after the column value (including the file type).
 
 ```{r}
 split_by_ordered_column <- function(fname, cnum, prefix, suffix) {
@@ -124,7 +132,8 @@ for (i in 1:nrow(fname)) {
   #if the first row, or if the column value isn't the same as the previous one
       
     write_tsv(fname[i,], paste(prefix, fname[i,cnum], suffix, sep = ""))
-    #create a dataframe named with the current (ith) row named("prefix, current column         #value, suffix")  
+    #create a dataframe named with the current (ith) row named("prefix, current column
+    #value, suffix")  
     
     } else {
         write_tsv(fname[i,], paste(prefix, fname[i,cnum], suffix, sep = ""), append = T)
@@ -145,8 +154,7 @@ unlink("sorted_data/*unknown*")   #remove the unneeded files with "unknown" SNP 
 
 Part 2 - SNPs Per Chromosome
 
-Create new genotypes tibble that has headers and arrange it by group.
-  Replace "?/?" with "NA"
+Create new genotypes tibble that has headers and arrange it by group. Replace "?/?" with "NA"
 
 ```{r}
 headed_genotypes <- read_tsv("data/genotypes.txt")
