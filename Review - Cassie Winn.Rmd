@@ -1,0 +1,289 @@
+---
+title: "README"
+author: "Ben Cortes"
+date: "October 2, 2018"
+output: html_document
+---
+
+Load tidyverse
+
+```{r}
+library(tidyverse)
+```
+
+Download fang_et_al_genotypes.txt and SNP_position.txt to the project folder and rename them
+
+```{r}
+download.file("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018/master/assignments/UNIX_Assignment/fang_et_al_genotypes.txt", destfile = "data/genotypes.txt")
+
+download.file("https://raw.githubusercontent.com/EEOB-BioData/BCB546X-Fall2018/master/assignments/UNIX_Assignment/snp_position.txt", destfile = "data/SNPs.txt")
+```
+Part 1 - Data Inspection
+
+Inspect file structure
+
+# I like how you created your own function to do this!
+  Create function called inspect_file which adds the following to inspection tibble and prints:
+  
+  file.info (only state the 1st, 2nd, and 4th - 6th outputs which are the following)
+  
+  size - size of file in bytes
+
+  isdir - whether or not file is directory
+  
+  mtime - last time file modified
+  
+  ctime - "last status change"
+  
+  atime - last accession time
+  
+  Number of rows and columns: Import text file as tibble with its headers as its first row. Use nrow and ncolumn, and add the results to the inspection tibble created above
+  
+```{r}
+inspect_file <- function(file_path) {                             #create function
+  inspection <- as.tibble(file.info(file_path))[,c(1,2,4:6)]      #make inspection tibble 
+                                                                    #from file.info output
+  tib <- read_tsv(file_path, col_names = F)                       #create temp tibble
+  add_column(inspection, rows = nrow(tib), columns = ncol(tib))   #find number of columns
+}                                                                   #and number of rows
+
+inspect_file("data/genotypes.txt")
+inspect_file("data/snps.txt")
+```
+
+Part 1 - Data Processing
+
+Turn both text files into tibbles and call them. Setting col_names equal to FALSE, circumvents the issues with the transpose command as t(X) will not transpose the headers of X
+
+```{r}
+genotypes <- read_tsv("data/genotypes.txt", col_names = F)
+snps <- read_tsv("data/SNPs.txt")
+```
+
+Get the three useful snp columns
+
+```{r}
+snps_f <- select(snps, 1,3,4)
+```
+
+Transpose the imported genotype.txt file. Transpose will not transpose headers. Therefore, the header was incorporated into the tibble by setting col_names equal to FALSE earlier. Return first row to columns following transposition
+  
+```{r}
+tran_genotypes <- as.tibble(t(genotypes))
+```
+
+Pull maize and teosinte data from tran_genotypes
+
+Eliminate unneeded rows at top (JG_OTU and Group)
+
+Return top row to header
+
+```{r}
+maize_tgen <- as.tibble(select(tran_genotypes, grep("ZMM", tran_genotypes))) #pull maize
+teos_tgen <- as.tibble(select(tran_genotypes, grep("ZMP", tran_genotypes)))  #pull teosinte
+maize_tgen <- maize_tgen[-c(2,3),]                                           #remove unnee-
+teos_tgen <- teos_tgen[-c(2,3),]                                               #ded rows
+names(maize_tgen) <- as.character(unlist(maize_tgen[1,]))                    #take top row
+maize_tgen <- maize_tgen[-1,]                                                  #and make it
+names(teos_tgen) <- as.character(unlist(teos_tgen[1,]))                        #the header
+teos_tgen <- teos_tgen[-1,]
+
+```
+
+Combine snps_f and each of the tgen files, forming maize and teos respectively
+
+Arrange by Chromosome, both in ascending and descending order. NAs are not written into Chromosome column, they're just an artefact of arrangement I think. 
+
+Columns are bound first (as.tibble(cbind(snps_f, transposed_file)), then arranged numerically according to Chromosome, then by Position.
+
+```{r}
+maize_asc <- arrange(as.tibble(cbind(snps_f, maize_tgen[,-1])), as.numeric(Chromosome), as.numeric(Position)) 
+teos_asc <- arrange(as.tibble(cbind(snps_f, teos_tgen[,-1])), as.numeric(Chromosome), as.numeric(Position))
+maize_des <- arrange(as.tibble(cbind(snps_f, maize_tgen[,-1])), as.numeric(Chromosome), desc(as.numeric(Position)))
+teos_des <- arrange(as.tibble(cbind(snps_f, teos_tgen[,-1])), as.numeric(Chromosome), desc(as.numeric(Position)))
+```
+
+For the descending files, replace "?" in "?/?" with "-" in "-/-". For whatever reason, the it only works if it is done with lapply. teos_des <- as.tibble(gsub("\\?", "-", teos_des)) runs, but the entire tibble gets completely messed up with replacements. Not sure why.
+
+```{r}
+maize_des <- as.tibble(lapply(maize_des, function(x) {  #\\ used to prevent R from reading
+  gsub("\\?", "-", x)                                     #? as an important character
+}))                                                     #gsub replaces first argument with
+teos_des <- as.tibble(lapply(teos_des, function(x) {      #second argument
+  gsub("\\?", "-", x)                                   #lapply necessary to apply replace-
+}))                                                       #ment to whole table 
+
+```
+
+Separated files
+
+Create function to split rows of dataframe into smaller files. Files with identical values in a user-defined, ordered column will be added to same file (ie, all files with same value in a column will be placed into a file). Output to files with filenames bearing the pattern "'third input' 'value of column at given iteration' 'fourth input'". Input: dataframe, number of column, anything to be written in the output filename before the column value (including the file path), anything to be written in the output filename after the column value (including the file type).
+
+```{r}
+split_by_ordered_column <- function(fname, cnum, prefix, suffix) {
+#dataframe to split = fname
+#column to split by = cnum
+#first part of filename = prefix
+#second part of filename = suffix
+
+for (i in 1:nrow(fname)) {
+#iterate through all rows of dataframe
+  
+  if(i == 1 || fname[i,cnum] != fname[i-1,cnum]) {
+  #if the first row, or if the column value isn't the same as the previous one
+      
+    write_tsv(fname[i,], paste(prefix, fname[i,cnum], suffix, sep = ""))
+    #create a dataframe named with the current (ith) row named("prefix, current column
+    #value, suffix")  
+    
+    } else {
+        write_tsv(fname[i,], paste(prefix, fname[i,cnum], suffix, sep = ""), append = T)
+    #otherwise, append ith row to current dataframe
+      
+    }
+  }
+}
+
+split_by_ordered_column(maize_asc, 2, "sorted_data/chromosome_", "_maize_asc.txt")
+split_by_ordered_column(teos_asc, 2, "sorted_data/chromosome_", "_teos_asc.txt")
+split_by_ordered_column(maize_des, 2, "sorted_data/chromosome_", "_maize_des.txt")
+split_by_ordered_column(teos_des, 2, "sorted_data/chromosome_", "_teos_des.txt")
+
+unlink("sorted_data/*multiple*")  #remove the unneeded files with "multiple" SNP positions
+unlink("sorted_data/*unknown*")   #remove the unneeded files with "unknown" SNP positions
+```
+
+Part 2 - SNPs Per Chromosome
+
+Create new genotypes tibble that has headers and arrange it by group. Replace "?/?" with "NA"
+
+```{r}
+headed_genotypes <- read_tsv("data/genotypes.txt")
+headed_genotypes <- as.tibble(lapply(headed_genotypes, function(x) { #replacement as above
+  gsub("\\?\\/\\?", "NA", x) 
+}))
+grouped_genotypes <- arrange(headed_genotypes, Group)                #arrange by Group
+```
+Create new tibbles, one for each value in the Group column
+
+```{r}
+for (i in 1:length(unique(grouped_genotypes$Group))) {
+  #iterate through number of unique vsalues in Group column (ie, the number of groups)
+  
+  df <- paste("group_", i, sep = "")
+    #create dataframe which will be named "group_i"
+  
+  assign(df, filter(grouped_genotypes, Group == unique(grouped_genotypes$Group)[i]))
+    #assign dataframe with all rows where the Group value is the same as the current (ith)
+    #unique group value (ie, all rows with Group values of TRIPS will be added to group_1)
+}
+```
+
+Create a tibble with two columns, Groups and SNPs. This for loop basically creates a long-format dataframe with the names of the unique SNPs for every group. Unique SNPs for a group means that there are multiple genotypes (not including missing data) for a given gene (not exactly sure if these are genes, but I mean the abph1.20, abph1.22 headers in the grouped_genotypes file). So ba1.6 would be a SNP for group TRIPS because it has A/G and G/G. However, a gene that had only T/T or T/T and NA genotypes would not be a SNP.
+
+```{r}
+grp_snps <- tibble(Groups=character(), SNPs=character())
+#create tibble with two columns, Groups and SNPs
+
+for (i in 1:length(unique(grouped_genotypes$Group))) {
+#iterate through the total number of unique values in the Group column (16 total)
+  
+  grpdf = get(paste("group_", i, sep = ""))
+  #use get to set the actual value of grpdf as one of the groups created earlier (group_i)
+  
+  for (j in 4:ncol(grpdf)) {
+  #for j, starting at the first gene column (column 4), iterate through all gene columns
+    
+    uni <- unique(grpdf[,j])
+    #uni equals a tibble with the gene name as header and containing all unique genotypes
+      #of that column
+    
+    if (nrow(uni) > 2 || (nrow(uni) == 2 && ("NA" %in% uni) == F)) {
+    #if the number of uniqe genotype values for a given gene column is greater than 2.
+      #Anything with more than 2 genotypes has to be a SNP (at the minimum of 3 values,
+      #even if one of the values was NA, there would still be two different genotypes))
+      #Or, if there are only two unique values but NA is not one of those values, then...
+      
+      grp_snps <- add_row(grp_snps, Groups=unique(grouped_genotypes$Group)[i], SNPs=names(uni))
+      #add a row to the initialized tibble. Groups is given the current group, SNPs is
+        #given the name of the gene with a SNP (the header of uni)
+    }
+  }
+}
+```
+
+Join the new tibble of Groups and SNPs to the snps_f tibble which contains the chromosome number data needed for the graph. Make the graph.
+
+# I like how you incorporated groups into the plot of SNPS per chromosome- I did that in a separate graph but I think putting them together helps with the visualization. Plus I like the colors! Is there a reason you left out the number of SNPS for multiple or NA chromosomes? It isn't needed but might be nice to see
+```{r}
+graph_1 <- left_join(snps_f, grp_snps, by = c("SNP_ID" = "SNPs"))
+#join the rows of grp_snps to snps_f wherever the value of the SNPs column in grp_snps
+  #matches the value of the SNP_ID column
+
+graph_1 <- filter(graph_1, Chromosome %in% c(1:10))
+#filter out the rows where the value of the Chromosome column is "multiple" or "unknown"
+
+ggplot(data = graph_1) + geom_bar(mapping = aes(x = Chromosome, fill = Groups))
+#make a bar graph, with each chromosome as each bar, and each bar divided by Group value
+```
+We can see from the graph that the amount of SNPs decreases from the first chromosome to the 10th. However, it seems like there isn't much of a trend as to how group affects number of SNPs.
+
+Part 2 - Missing Data and Amount of Heterozygosity
+
+Replace "NA" with R's actual missing data term, NA.
+Mutate and add a new column, Phenotype. Nested ifelse statements assign either Homo or Hetero depending on SNP. Arrange by either group or species (Sample_ID).
+
+```{r}
+gathered_genotypes <- gather(headed_genotypes[,-2], SNP_info, values, -Sample_ID, -Group) %>%
+#gather the headed_genotypes file, converting it to long-format data. Setting SNP_info as
+  #the key file makes all gene names populate that column (essentially making it the
+  # column variable in the long-format data)
+  
+  mutate(homo_hetero = ifelse(values == "NA", NA, ifelse(values == fixed("A/A"), "Homo", ifelse(values == fixed("T/T"), "Homo", ifelse(values == fixed("C/C"), "Homo", ifelse(values == fixed("G/G"), "Homo", "Hetero"))))))
+  #mutate to add new column with information on homozygosity or heterozygosity. Nested
+  #ifelse statements replace "NA" with R's missing data variable NA, then assigns "Homo" if
+  #homozygous or "Hetero" if heterozygous. Had to fix the "C/C" variables and use nested
+  #ifelse statements, otherwise ANY value that was not "NA" was assigned "Hetero". No
+  #idea why
+
+graph_2_group <- arrange(gathered_genotypes, Group)     #arrange data by Group or Sample_ID
+graph_2_species <- arrange(gathered_genotypes, Sample_ID)
+```
+
+Two graphs needed, one with a bar for each group, and anothyer with a bar for each Sample_ID. Both filled with the hetero_homo column, thereby showing how much of each bar was contributed by missing data, homozygous genotypes, and heterozygous genotypes. The position = "fill" standardizes the data.
+
+```{r}
+ggplot(data = graph_2_group) + geom_bar(mapping = aes(x = Group, fill = homo_hetero), position = "fill")
+
+ggplot(data = graph_2_species) + geom_bar(mapping = aes(x = Sample_ID, fill = homo_hetero), position = "fill")
+```
+The graph demonstrates that, certain groups (especially TRIPS) have a decent amount of missing genotype data. Additionally, the vast majority of the SNPs are homozygous (especially in 5th group in the graph). The Sample_ID data shows similarly that there are some samples with significant levels of missing data and some samples with almost all homozygous SNPs.
+
+Part 2 - Other Graph
+
+Decided to see the positions of each SNP graphed along each chromosome for the maize and teosinte data (using the ascending position order column). Removed SNPs with "multiple" and "unknown" chromosome values. 
+
+```{r}
+maize_graph_data <- filter(maize_asc, Chromosome %in% c(1:10))
+teos_graph_data <- filter(teos_asc, Chromosome %in% c(1:10))
+```
+
+Graphed the data.
+
+```{r}
+maize_graph <- ggplot(data = maize_graph_data, mapping = aes(x=SNP_ID, y=as.numeric(Position))) + geom_point(size=1, color="blue")
+#position is plotted against the SNP_ID, though the SNP_ID order is not meaningful
+
+maize_graph <- maize_graph + facet_wrap(~ Chromosome)
+#facet and split by chromosome to see the positions compared to each chromosome
+
+print(maize_graph)
+
+teos_graph <- ggplot(data = teos_graph_data, mapping = aes(x=SNP_ID, y=as.numeric(Position))) + geom_point(size=1, color="blue")
+teos_graph <- teos_graph + facet_wrap(~ Chromosome)
+print(teos_graph)
+```
+
+From the graph, a general idea of how many SNPs are present on each chromosome can be determined. This agrees with the bar graph created earlier. Additionally, there are gaps where no SNPs are located visible in the graphs of chromosomes 2, 5, and 7. Maybe this is because these are centromere locations, and as a result, they could not be sequenced well (as we discussed briefly in class). Finally, the graphs give a general idea of the size of the chromosome. Since no SNPs are visible past a certain position, it can be concluded that the chromosomes end at around that length. Therefore, chromosome length decreases from chromosome 1 to chromosome 10.
+
+# Thanks for the summary at the end! I enjoyed seeing how you tackled this assignment. Great job!
